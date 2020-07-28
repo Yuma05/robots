@@ -2,9 +2,9 @@
 <project version="4">
   <component name="CodicPluginSettings">
     <option name="accessToken" value="OWh8ZACsJZ46TqHXEApdfYjWTNr4ovHQp0" />
-    <option name="letterCaseConvention" value="ObjectiveC:upper underscore," />
+    <option name="letterCaseConvention" value="ObjectiveC:," />
     <option name="projectId" value="10626" />
-    <option name="quickLookHeight" value="152" />
-    <option name="quickLookWidth" value="302" />
+    <option name="quickLookHeight" value="156" />
+    <option name="quickLookWidth" value="306" />
   </component>
 </project>
