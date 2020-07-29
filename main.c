@@ -26,11 +26,17 @@ void createRobots(COORDINATE robots[ROBOTS], int robotCount, int isUsed[H][W]);
 
 int randint(int min, int max);
 
-void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, int robotCount);
+void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount);
 
-void play(COORDINATE robots[ROBOTS], COORDINATE player, int robotCount);
+void play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount);
 
-void movePlayer(char command,COORDINATE *player);
+void movePlayer(char command, COORDINATE *player);
+
+void moveRobots(COORDINATE robots[ROBOTS], COORDINATE player);
+
+int checkCollisionScrap(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
+
+int checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
 
 int main() {
     int robotCount = 5;
@@ -42,25 +48,26 @@ int main() {
     createPlayer(&player, isUsed);
     initScrap(scrap);
     initRobots(robots);
+    printf("%d  %d\n", robots[10].x, robots[10].y);
     createRobots(robots, robotCount, isUsed);
+    printf("%d  %d\n", robots[10].x, robots[10].y);
 //    for (int i = 0; i < n; ++i) {
 //        printf("%d,%d\n", robots[i].x, robots[i].y);
 //    }
-    displayBoard(robots, player, robotCount);
-    play(robots,player,robotCount);
+    play(robots, player, scrap, robotCount);
 
     return 0;
 }
 
 void initRobots(COORDINATE robots[ROBOTS]) {
-    for (int i = 0; i < ROBOTS; ++i) {
+    for (int i = 0; i < ROBOTS - 1; ++i) {
         robots[i].x = -1;
         robots[i].y = -1;
     }
 }
 
 void initScrap(COORDINATE scrap[SCRAP]) {
-    for (int i = 0; i < SCRAP; ++i) {
+    for (int i = 0; i < SCRAP - 1; ++i) {
         scrap[i].x = -1;
         scrap[i].y = -1;
     }
@@ -100,7 +107,7 @@ int randint(int min, int max) {
     return min + (int) (rand() * (max - min + 1.0) / (1.0 + RAND_MAX));
 }
 
-void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, int robotCount) {
+void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount) {
     char board[H][W];
     for (int i = 0; i < H; ++i) {
         for (int j = 0; j < W; ++j) {
@@ -108,8 +115,15 @@ void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, int robotCount) 
         }
     }
 
-    for (int i = 0; i < robotCount; ++i) {
-        board[robots[i].y][robots[i].x] = '+';
+    for (int i = 0; i < ROBOTS - 1; ++i) {
+        if (robots[i].x != -1 && robots[i].y != -1) {
+            board[robots[i].y][robots[i].x] = '+';
+        }
+    }
+    for (int i = 0; i < SCRAP - 1; ++i) {
+        if (scrap[i].x != -1 && scrap[i].y != -1) {
+            board[scrap[i].y][scrap[i].x] = '*';
+        }
     }
     board[player.y][player.x] = '@';
 
@@ -134,39 +148,70 @@ void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, int robotCount) 
     printf("+\n");
 }
 
-void play(COORDINATE robots[ROBOTS], COORDINATE player, int robotCount){
-    displayBoard(robots, player, robotCount);
-    char command = getChar();
-    movePlayer(command,&player);
+void play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount) {
+    displayBoard(robots, player, scrap, robotCount);
+    char command;
+    while (1) {
+        printf("%d  %d\n", robots[10].x, robots[10].y);
+        command = getChar();
+//        printf("%c",command);
+        movePlayer(command, &player);
+        moveRobots(robots, player);
+        printf("%d  %d\n\n\n", robots[10].x, robots[10].y);
+        checkCollisionRobots(robots, scrap);
+        checkCollisionScrap(robots, scrap);
+        displayBoard(robots, player, scrap, robotCount);
+
+    }
 }
 
-void movePlayer(char command,COORDINATE *player){
-    switch ((int)command) {
+void movePlayer(char command, COORDINATE *player) {
+    COORDINATE temp;
+    temp.x = player->x;
+    temp.y = player->y;
+    switch ((int) command - '0') {
         case 0:
-            player->x = randint(0, W - 1);
-            player->y = randint(0, H - 1);
+            temp.x = randint(0, W - 1);
+            temp.y = randint(0, H - 1);
+            break;
         case 1:
-            player->x -= 1;
-            player->y += 1;
+            temp.x = player->x - 1;
+            temp.y = player->y + 1;
+            break;
         case 2:
-            player->y += 1;
+            temp.y = player->y + 1;
+            break;
         case 3:
-            player->x += 1;
-            player->y += 1;
+            temp.x = player->x + 1;
+            temp.y = player->y + 1;
+            break;
         case 4:
-            player->x -= 1;
+            temp.x = player->x - 1;
+            break;
         case 5:
+            break;
         case 6:
-            player->x += 1;
+            temp.x = player->x + 1;
+            break;
         case 7:
-            player->x -= 1;
-            player->y -= 1;
+            temp.x = player->x - 1;
+            temp.y = player->y - 1;
+            break;
         case 8:
-            player->y -= 1;
+            temp.y = player->y - 1;
+            break;
         case 9:
-            player->x += 1;
-            player->y -= 1;
+            temp.x = player->x + 1;
+            temp.y = player->y - 1;
+            break;
         default:
+            printf("Input error\n");
+            break;
+    }
+
+    if (0 <= temp.x && temp.x < W && 0 <= temp.y && temp.y < H) {
+        player->x = temp.x;
+        player->y = temp.y;
     }
 }
 
@@ -197,4 +242,52 @@ char getChar(void) {
     ioctl(0, TCSETAW, &old_term);
 
     return (c);
+}
+
+void moveRobots(COORDINATE robots[ROBOTS], COORDINATE player) {
+    for (int i = 0; i < ROBOTS - 1; ++i) {
+        if (robots[i].x != -1 && robots[i].y != -1) {
+            if (player.x < robots[i].x) {
+                robots[i].x -= 1;
+            } else if (player.x > robots[i].x) {
+                robots[i].x += 1;
+            }
+
+            if (player.y < robots[i].y) {
+                robots[i].y -= 1;
+            } else if (player.y > robots[i].y) {
+                robots[i].y += 1;
+            }
+        }
+    }
+}
+
+
+int checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
+    for (int i = 0; i < ROBOTS - 2; ++i) {
+        for (int j = i + 1; j < ROBOTS - 1; ++j) {
+            if (robots[i].x == robots[j].x && robots[i].y == robots[j].y) {
+                for (int k = 0; k < SCRAP - 1; ++k) {
+                    if (scrap[k].x == -1 && scrap[k].y == -1) {
+                        scrap[k].x = robots[j].x;
+                        scrap[k].y = robots[j].y;
+                        break;
+                    }
+                }
+                robots[j].x = -1;
+                robots[j].y = -1;
+            }
+        }
+    }
+}
+
+int checkCollisionScrap(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
+    for (int i = 0; i < ROBOTS - 1; ++i) {
+        for (int j = 0; j < SCRAP - 1; ++j) {
+            if (robots[i].x == scrap[j].x && robots[i].y == scrap[j].y) {
+                robots[i].x = -1;
+                robots[i].y = -1;
+            }
+        }
+    }
 }
