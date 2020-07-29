@@ -28,7 +28,7 @@ int randint(int min, int max);
 
 void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount);
 
-void play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount);
+int play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount, int level);
 
 void movePlayer(char command, COORDINATE *player);
 
@@ -38,29 +38,42 @@ int checkCollisionScrap(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
 
 int checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
 
+int countRemainingRobots(COORDINATE robots[ROBOTS]);
+
+void displayScore(int level, int score);
+
+int initScore(int level);
+
+int isCollisionRobotsAndPlayer(COORDINATE robots[ROBOTS], COORDINATE player);
+
 int main() {
-    int robotCount = 5;
     srand((unsigned int) time(NULL));
     COORDINATE robots[ROBOTS];
     COORDINATE scrap[ROBOTS];
     COORDINATE player;
-    int isUsed[H][W] = {FALSE};
-    createPlayer(&player, isUsed);
-    initScrap(scrap);
-    initRobots(robots);
-    printf("%d  %d\n", robots[10].x, robots[10].y);
-    createRobots(robots, robotCount, isUsed);
-    printf("%d  %d\n", robots[10].x, robots[10].y);
-//    for (int i = 0; i < n; ++i) {
-//        printf("%d,%d\n", robots[i].x, robots[i].y);
-//    }
-    play(robots, player, scrap, robotCount);
+    int level = 1;
+    int isGameClear = TRUE;
+    int robotCount = 5;
+    while (isGameClear) {
+        int isUsed[H][W] = {FALSE};
+        createPlayer(&player, isUsed);
+        initScrap(scrap);
+        initRobots(robots);
+        createRobots(robots, robotCount, isUsed);
+        isGameClear = play(robots, player, scrap, robotCount, level);
+        level++;
+        if (level <= 8){
+            robotCount = level * 5;
+        } else {
+            robotCount = 40;
+        }
+    }
 
     return 0;
 }
 
 void initRobots(COORDINATE robots[ROBOTS]) {
-    for (int i = 0; i < ROBOTS - 1; ++i) {
+    for (int i = 0; i < ROBOTS; ++i) {
         robots[i].x = -1;
         robots[i].y = -1;
     }
@@ -115,12 +128,13 @@ void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap
         }
     }
 
-    for (int i = 0; i < ROBOTS - 1; ++i) {
+    for (int i = 0; i < ROBOTS; ++i) {
         if (robots[i].x != -1 && robots[i].y != -1) {
+
             board[robots[i].y][robots[i].x] = '+';
         }
     }
-    for (int i = 0; i < SCRAP - 1; ++i) {
+    for (int i = 0; i < SCRAP; ++i) {
         if (scrap[i].x != -1 && scrap[i].y != -1) {
             board[scrap[i].y][scrap[i].x] = '*';
         }
@@ -148,21 +162,36 @@ void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap
     printf("+\n");
 }
 
-void play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount) {
-    displayBoard(robots, player, scrap, robotCount);
+int play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount, int level) {
     char command;
-    while (1) {
-        printf("%d  %d\n", robots[10].x, robots[10].y);
+    int remainingRobot = robotCount;
+    int tmpRemainingRobots = 0;
+    int score = initScore(level);
+    int isGameOver = FALSE;
+    displayBoard(robots, player, scrap, robotCount);
+    displayScore(level, score);
+    while (remainingRobot != 0) {
         command = getChar();
-//        printf("%c",command);
         movePlayer(command, &player);
         moveRobots(robots, player);
-        printf("%d  %d\n\n\n", robots[10].x, robots[10].y);
+        isGameOver = isCollisionRobotsAndPlayer(robots,player);
+        if (isGameOver){
+            displayBoard(robots, player, scrap, robotCount);
+            displayScore(level, score);
+            printf("Game Over!\n");
+            return FALSE;
+        }
         checkCollisionRobots(robots, scrap);
         checkCollisionScrap(robots, scrap);
+        tmpRemainingRobots = remainingRobot;
+        remainingRobot = countRemainingRobots(robots);
+        if (tmpRemainingRobots != remainingRobot) {
+            score += tmpRemainingRobots - remainingRobot;
+        }
         displayBoard(robots, player, scrap, robotCount);
-
+        displayScore(level, score);
     }
+    return TRUE;
 }
 
 void movePlayer(char command, COORDINATE *player) {
@@ -245,7 +274,7 @@ char getChar(void) {
 }
 
 void moveRobots(COORDINATE robots[ROBOTS], COORDINATE player) {
-    for (int i = 0; i < ROBOTS - 1; ++i) {
+    for (int i = 0; i < ROBOTS; ++i) {
         if (robots[i].x != -1 && robots[i].y != -1) {
             if (player.x < robots[i].x) {
                 robots[i].x -= 1;
@@ -264,8 +293,8 @@ void moveRobots(COORDINATE robots[ROBOTS], COORDINATE player) {
 
 
 int checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
-    for (int i = 0; i < ROBOTS - 2; ++i) {
-        for (int j = i + 1; j < ROBOTS - 1; ++j) {
+    for (int i = 0; i < ROBOTS - 1; ++i) {
+        for (int j = i + 1; j < ROBOTS; ++j) {
             if (robots[i].x == robots[j].x && robots[i].y == robots[j].y) {
                 for (int k = 0; k < SCRAP - 1; ++k) {
                     if (scrap[k].x == -1 && scrap[k].y == -1) {
@@ -282,12 +311,46 @@ int checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
 }
 
 int checkCollisionScrap(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
-    for (int i = 0; i < ROBOTS - 1; ++i) {
-        for (int j = 0; j < SCRAP - 1; ++j) {
+    for (int i = 0; i < ROBOTS; ++i) {
+        for (int j = 0; j < SCRAP; ++j) {
             if (robots[i].x == scrap[j].x && robots[i].y == scrap[j].y) {
                 robots[i].x = -1;
                 robots[i].y = -1;
             }
         }
     }
+}
+
+int countRemainingRobots(COORDINATE robots[ROBOTS]) {
+    int countRobots = 0;
+    for (int i = 0; i < ROBOTS; ++i) {
+        if (robots[i].x != -1 && robots[i].y != -1) {
+            countRobots++;
+        }
+    }
+    return countRobots;
+}
+
+void displayScore(int level, int score) {
+    printf("(level:%d score:%d)?\n", level, score);
+}
+
+int initScore(int level) {
+    int score = (level - 1) * 10;
+    if (level <= 8) {
+        score += (level - 1) * 5;
+    } else {
+        score += 40;
+    }
+
+    return score;
+}
+
+int isCollisionRobotsAndPlayer(COORDINATE robots[ROBOTS], COORDINATE player){
+    for (int i = 0; i < ROBOTS; ++i) {
+        if (player.x == robots[i].x && player.y == robots[i].y){
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
