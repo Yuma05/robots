@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <termio.h>
+
 
 #define W 60
 #define H 20
@@ -10,11 +10,12 @@
 #define TRUE 1
 #define FALSE 0
 
+
 typedef struct {
     int x, y;
 } COORDINATE;
 
-char getChar(void);
+extern char getChar(void);
 
 void initRobots(COORDINATE robots[ROBOTS]);
 
@@ -26,11 +27,11 @@ void createRobots(COORDINATE robots[ROBOTS], int robotCount, int isUsed[H][W]);
 
 int randint(int min, int max);
 
-void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount);
+void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP]);
 
 int play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount, int level);
 
-void movePlayer(char command, COORDINATE *player);
+void movePlayer(char command, COORDINATE *player, COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
 
 void moveRobots(COORDINATE robots[ROBOTS], COORDINATE player);
 
@@ -45,6 +46,8 @@ void displayScore(int level, int score);
 int initScore(int level);
 
 int isCollisionRobotsAndPlayer(COORDINATE robots[ROBOTS], COORDINATE player);
+
+int canMovePlayer(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP], COORDINATE player);
 
 int main() {
     srand((unsigned int) time(NULL));
@@ -62,7 +65,7 @@ int main() {
         createRobots(robots, robotCount, isUsed);
         isGameClear = play(robots, player, scrap, robotCount, level);
         level++;
-        if (level <= 8){
+        if (level <= 8) {
             robotCount = level * 5;
         } else {
             robotCount = 40;
@@ -120,7 +123,7 @@ int randint(int min, int max) {
     return min + (int) (rand() * (max - min + 1.0) / (1.0 + RAND_MAX));
 }
 
-void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount) {
+void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP]) {
     char board[H][W];
     for (int i = 0; i < H; ++i) {
         for (int j = 0; j < W; ++j) {
@@ -165,18 +168,18 @@ void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap
 int play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount, int level) {
     char command;
     int remainingRobot = robotCount;
-    int tmpRemainingRobots = 0;
+    int tmpRemainingRobots;
     int score = initScore(level);
     int isGameOver = FALSE;
-    displayBoard(robots, player, scrap, robotCount);
+    displayBoard(robots, player, scrap);
     displayScore(level, score);
     while (remainingRobot != 0) {
         command = getChar();
-        movePlayer(command, &player);
+        movePlayer(command, &player, robots, scrap);
         moveRobots(robots, player);
-        isGameOver = isCollisionRobotsAndPlayer(robots,player);
-        if (isGameOver){
-            displayBoard(robots, player, scrap, robotCount);
+        isGameOver = isCollisionRobotsAndPlayer(robots, player);
+        if (isGameOver) {
+            displayBoard(robots, player, scrap);
             displayScore(level, score);
             printf("Game Over!\n");
             return FALSE;
@@ -188,20 +191,24 @@ int play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], 
         if (tmpRemainingRobots != remainingRobot) {
             score += tmpRemainingRobots - remainingRobot;
         }
-        displayBoard(robots, player, scrap, robotCount);
+        displayBoard(robots, player, scrap);
         displayScore(level, score);
     }
     return TRUE;
 }
 
-void movePlayer(char command, COORDINATE *player) {
+void movePlayer(char command, COORDINATE *player, COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
     COORDINATE temp;
+    int isMove = FALSE;
     temp.x = player->x;
     temp.y = player->y;
     switch ((int) command - '0') {
         case 0:
-            temp.x = randint(0, W - 1);
-            temp.y = randint(0, H - 1);
+            while (!isMove) {
+                temp.x = randint(0, W - 1);
+                temp.y = randint(0, H - 1);
+                isMove = canMovePlayer(robots,scrap,temp);
+            }
             break;
         case 1:
             temp.x = player->x - 1;
@@ -242,35 +249,6 @@ void movePlayer(char command, COORDINATE *player) {
         player->x = temp.x;
         player->y = temp.y;
     }
-}
-
-char getChar(void) {
-    struct termio old_term, new_term;
-
-    char c;
-
-    /* 現在の設定を得る */
-    ioctl(0, TCGETA, &old_term);
-
-    /* 設定のコピーをつくる */
-    new_term = old_term;
-
-    /* 入力文字のエコーを抑止する場合 */
-    new_term.c_lflag &= ~(ICANON | ECHO);
-
-    /* エコーは止めない場合 */
-    //new_term.c_lflag &= ~(ICANON);
-
-    /* 新しい設定を反映する */
-    ioctl(0, TCSETAW, &new_term);
-
-    /* 1 文字入力 */
-    c = getchar();
-
-    /* 古い設定に戻す */
-    ioctl(0, TCSETAW, &old_term);
-
-    return (c);
 }
 
 void moveRobots(COORDINATE robots[ROBOTS], COORDINATE player) {
@@ -346,11 +324,32 @@ int initScore(int level) {
     return score;
 }
 
-int isCollisionRobotsAndPlayer(COORDINATE robots[ROBOTS], COORDINATE player){
+int isCollisionRobotsAndPlayer(COORDINATE robots[ROBOTS], COORDINATE player) {
     for (int i = 0; i < ROBOTS; ++i) {
-        if (player.x == robots[i].x && player.y == robots[i].y){
+        if (player.x == robots[i].x && player.y == robots[i].y) {
             return TRUE;
         }
     }
     return FALSE;
+}
+
+int canMovePlayer(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP], COORDINATE player) {
+    int isUsed[H][W] = {FALSE};
+    for (int i = 0; i < ROBOTS; ++i) {
+        if (robots[i].x != -1 && robots[i].y != -1) {
+            isUsed[robots[i].y][robots[i].x] = TRUE;
+        }
+    }
+
+    for (int i = 0; i < SCRAP; ++i) {
+        if (scrap[i].x != -1 && scrap[i].y != -1) {
+            isUsed[scrap[i].y][scrap[i].x] = TRUE;
+        }
+    }
+
+    if (isUsed[player.y][player.x]) {
+        return FALSE;
+    } else {
+        return TRUE;
+    }
 }

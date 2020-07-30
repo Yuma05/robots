@@ -3,4 +3,4 @@ project(robots C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(robots main.c)
+add_executable(robots main.c getchar.c)
