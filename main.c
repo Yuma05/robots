@@ -17,36 +17,52 @@ typedef struct {
 
 extern char getChar(void);
 
+//ロボットの初期化
 void initRobots(COORDINATE robots[ROBOTS]);
 
+//スクラップの初期化
 void initScrap(COORDINATE scrap[SCRAP]);
 
+//プレイヤーの初期位置を設定
 void createPlayer(COORDINATE *player, int isUsed[H][W]);
 
+//ロボットの初期位置の設定
 void createRobots(COORDINATE robots[ROBOTS], int robotCount, int isUsed[H][W]);
 
+//ランダム値の生成
 int randint(int min, int max);
 
+//表示
 void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP]);
 
+//ゲーム進行
 int play(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap[SCRAP], int robotCount, int level);
 
+//プレイヤーの移動
 void movePlayer(char command, COORDINATE *player, COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
 
+//ロボットの移動
 void moveRobots(COORDINATE robots[ROBOTS], COORDINATE player);
 
-int checkCollisionScrap(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
+//スクラップとロボットの衝突判定
+void checkCollisionScrap(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
 
-int checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
+//ロボット同士の衝突判定
+void checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]);
 
+//残りのロボットの確認
 int countRemainingRobots(COORDINATE robots[ROBOTS]);
 
+//スコアの表示
 void displayScore(int level, int score);
 
+//スコアの初期化
 int initScore(int level);
 
+//ロボットとプレイヤーの衝突判定
 int isCollisionRobotsAndPlayer(COORDINATE robots[ROBOTS], COORDINATE player);
 
+//プレイヤーのワープ先にロボットがいないか
 int canMovePlayer(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP], COORDINATE player);
 
 int main() {
@@ -131,25 +147,32 @@ void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap
         }
     }
 
+    //ロボットの生成
     for (int i = 0; i < ROBOTS; ++i) {
         if (robots[i].x != -1 && robots[i].y != -1) {
 
             board[robots[i].y][robots[i].x] = '+';
         }
     }
+
+    //スクラップの生成
     for (int i = 0; i < SCRAP; ++i) {
         if (scrap[i].x != -1 && scrap[i].y != -1) {
             board[scrap[i].y][scrap[i].x] = '*';
         }
     }
+
+    //プレイヤーの生成
     board[player.y][player.x] = '@';
 
+    //外枠
     printf("+");
     for (int i = 0; i < W; ++i) {
         printf("-");
     }
     printf("+\n");
 
+    //表示
     for (int i = 0; i < H; ++i) {
         printf("|");
         for (int j = 0; j < W; ++j) {
@@ -159,6 +182,7 @@ void displayBoard(COORDINATE robots[ROBOTS], COORDINATE player, COORDINATE scrap
     }
     printf("+");
 
+    //外枠
     for (int i = 0; i < W; ++i) {
         printf("-");
     }
@@ -207,7 +231,7 @@ void movePlayer(char command, COORDINATE *player, COORDINATE robots[ROBOTS], COO
             while (!isMove) {
                 temp.x = randint(0, W - 1);
                 temp.y = randint(0, H - 1);
-                isMove = canMovePlayer(robots,scrap,temp);
+                isMove = canMovePlayer(robots, scrap, temp);
             }
             break;
         case 1:
@@ -270,17 +294,19 @@ void moveRobots(COORDINATE robots[ROBOTS], COORDINATE player) {
 }
 
 
-int checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
+void checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
     for (int i = 0; i < ROBOTS - 1; ++i) {
         for (int j = i + 1; j < ROBOTS; ++j) {
             if (robots[i].x == robots[j].x && robots[i].y == robots[j].y) {
                 for (int k = 0; k < SCRAP - 1; ++k) {
                     if (scrap[k].x == -1 && scrap[k].y == -1) {
+                        //衝突した位置にスクラップ生成
                         scrap[k].x = robots[j].x;
                         scrap[k].y = robots[j].y;
                         break;
                     }
                 }
+                //衝突したロボットは削除
                 robots[j].x = -1;
                 robots[j].y = -1;
             }
@@ -288,7 +314,7 @@ int checkCollisionRobots(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
     }
 }
 
-int checkCollisionScrap(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
+void checkCollisionScrap(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP]) {
     for (int i = 0; i < ROBOTS; ++i) {
         for (int j = 0; j < SCRAP; ++j) {
             if (robots[i].x == scrap[j].x && robots[i].y == scrap[j].y) {
@@ -335,12 +361,13 @@ int isCollisionRobotsAndPlayer(COORDINATE robots[ROBOTS], COORDINATE player) {
 
 int canMovePlayer(COORDINATE robots[ROBOTS], COORDINATE scrap[SCRAP], COORDINATE player) {
     int isUsed[H][W] = {FALSE};
+    //ロボットが使用している座標
     for (int i = 0; i < ROBOTS; ++i) {
         if (robots[i].x != -1 && robots[i].y != -1) {
             isUsed[robots[i].y][robots[i].x] = TRUE;
         }
     }
-
+    //スクラップが使用している座標
     for (int i = 0; i < SCRAP; ++i) {
         if (scrap[i].x != -1 && scrap[i].y != -1) {
             isUsed[scrap[i].y][scrap[i].x] = TRUE;
